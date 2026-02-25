@@ -1,0 +1,168 @@
+-- Dependent object type
+CREATE TYPE Depend_t AS OBJECT (
+    depname      VARCHAR2(12),
+    gender       CHAR(1),
+    bdate        DATE,
+    relationship VARCHAR2(10)
+);
+/
+
+-- Nested table type
+CREATE TYPE Dependtb_t AS TABLE OF Depend_t;
+/
+
+-- Forward declaration
+CREATE TYPE Emp_t;
+/
+
+-- Department type
+CREATE TYPE Dept_t AS OBJECT (
+    dno   NUMBER(2),
+    dname VARCHAR2(12),
+    mgr   REF Emp_t
+);
+/
+
+-- Employee type
+CREATE TYPE Emp_t AS OBJECT (
+    eno        NUMBER(4),
+    ename      VARCHAR2(15),
+    edept      REF Dept_t,
+    salary     NUMBER(8,2),
+    dependents Dependtb_t,
+    MEMBER FUNCTION child_allowance RETURN NUMBER,
+    MEMBER FUNCTION compute_bonus(rate NUMBER) RETURN NUMBER
+);
+/
+
+-- Project type
+CREATE TYPE Proj_t AS OBJECT (
+    pno    NUMBER(4),
+    pname  VARCHAR2(15),
+    pdept  REF Dept_t,
+    budget NUMBER(10,2)
+);
+/
+
+-- Works type
+CREATE TYPE Work_t AS OBJECT (
+    wemp  REF Emp_t,
+    wproj REF Proj_t,
+    since DATE,
+    hours NUMBER(4,2)
+);
+/
+
+--CREATE TABLES
+CREATE TABLE Dept OF Dept_t (
+    dno PRIMARY KEY
+);
+
+CREATE TABLE Emp OF Emp_t (
+    eno PRIMARY KEY,
+    edept REFERENCES Dept
+)
+NESTED TABLE dependents STORE AS dependent_tb;
+
+CREATE TABLE Proj OF Proj_t (
+    pno PRIMARY KEY,
+    pdept REFERENCES Dept
+);
+
+CREATE TABLE Works OF Work_t (
+    wemp REFERENCES Emp,
+    wproj REFERENCES Proj
+);
+
+
+-- Departments
+INSERT INTO Dept VALUES (1, 'Data Mining', NULL);
+INSERT INTO Dept VALUES (2, 'Networks', NULL);
+
+-- Employees
+INSERT INTO Emp VALUES (
+    2143,
+    'John',
+    (SELECT REF(d) FROM Dept d WHERE d.dno = 1),
+    50000,
+    Dependtb_t()
+);
+
+INSERT INTO Emp VALUES (
+    2144,
+    'Alice',
+    (SELECT REF(d) FROM Dept d WHERE d.dno = 2),
+    60000,
+    Dependtb_t()
+);
+
+-- Assign manager
+UPDATE Dept d
+SET d.mgr = (SELECT REF(e) FROM Emp e WHERE e.eno = 2143)
+WHERE d.dno = 1;
+
+-- Project
+INSERT INTO Proj VALUES (
+    101,
+    'AI Project',
+    (SELECT REF(d) FROM Dept d WHERE d.dno = 1),
+    100000
+);
+
+-- Works
+INSERT INTO Works VALUES (
+    (SELECT REF(e) FROM Emp e WHERE e.eno = 2143),
+    (SELECT REF(p) FROM Proj p WHERE p.pno = 101),
+    SYSDATE,
+    40
+);
+
+COMMIT;
+
+
+CREATE OR REPLACE TYPE BODY Emp_t AS
+
+  MEMBER FUNCTION child_allowance
+  RETURN NUMBER IS
+    child_count NUMBER;
+  BEGIN
+    SELECT COUNT(*)
+    INTO child_count
+    FROM TABLE(self.dependents) d
+    WHERE d.relationship = 'CHILD';
+
+    RETURN self.salary * 0.05 * child_count;
+  END child_allowance;
+
+  MEMBER FUNCTION compute_bonus(rate NUMBER)
+  RETURN NUMBER IS
+  BEGIN 
+    RETURN self.salary * rate / 100;
+  END compute_bonus;
+
+END;
+/
+
+-- (b) Display name, salary and child allowance
+SELECT e.ename,
+       e.salary,
+       e.child_allowance() AS allowance
+FROM Emp e;
+
+-- (c) Insert dependent child for employee 2143
+INSERT INTO TABLE (
+   SELECT e.dependents
+   FROM Emp e
+   WHERE e.eno = 2143
+)
+VALUES (
+   Depend_t('Jeremy','M', DATE '2001-03-12','CHILD')
+);
+
+COMMIT;
+
+-- (e) Bonus for Data Mining department (12%)
+SELECT e.ename,
+       e.compute_bonus(12) AS bonus
+FROM Emp e
+WHERE DEREF(e.edept).dname = 'Data Mining';

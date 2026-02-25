@@ -1,0 +1,176 @@
+1)
+SET SERVEROUTPUT ON;
+
+DECLARE
+    var_company  VARCHAR2(20) := 'IBM';
+    var_price    NUMBER;
+BEGIN
+    SELECT price INTO var_price
+    FROM stock
+    WHERE company = var_company;
+
+    DBMS_OUTPUT.PUT_LINE('Company : ' || var_company);
+    DBMS_OUTPUT.PUT_LINE('Current Price : ' || var_price);
+
+EXCEPTION
+    WHEN NO_DATA_FOUND THEN
+        DBMS_OUTPUT.PUT_LINE('Company not found.');
+END;
+/
+
+2)
+SET SERVEROUTPUT ON;
+
+DECLARE
+    var_company  VARCHAR2(20) := 'IBM';
+    var_price    NUMBER;
+BEGIN
+    SELECT price INTO var_price
+    FROM stock
+    WHERE company = var_company;
+
+    IF var_price < 45 THEN
+        DBMS_OUTPUT.PUT_LINE('Current price is very low !');
+
+    ELSIF var_price >= 45 AND var_price < 55 THEN
+        DBMS_OUTPUT.PUT_LINE('Current price is low !');
+
+    ELSIF var_price >= 55 AND var_price < 65 THEN
+        DBMS_OUTPUT.PUT_LINE('Current price is medium !');
+
+    ELSIF var_price >= 65 AND var_price < 75 THEN
+        DBMS_OUTPUT.PUT_LINE('Current price is medium high !');
+
+    ELSE
+        DBMS_OUTPUT.PUT_LINE('Current price is high !');
+    END IF;
+
+EXCEPTION
+    WHEN NO_DATA_FOUND THEN
+        DBMS_OUTPUT.PUT_LINE('Company not found.');
+END;
+/
+
+SET SERVEROUTPUT ON;
+
+BEGIN
+    FOR i IN REVERSE 1..9 LOOP
+        FOR j IN 1..i LOOP
+            DBMS_OUTPUT.PUT(i || ' ');
+        END LOOP;
+        DBMS_OUTPUT.NEW_LINE;
+    END LOOP;
+END;
+/
+
+
+SET SERVEROUTPUT ON;
+
+DECLARE
+    i NUMBER := 9;
+    j NUMBER;
+BEGIN
+    WHILE i >= 1 LOOP
+        j := 1;
+        WHILE j <= i LOOP
+            DBMS_OUTPUT.PUT(i || ' ');
+            j := j + 1;
+        END LOOP;
+
+        DBMS_OUTPUT.NEW_LINE;
+        i := i - 1;
+    END LOOP;
+END;
+/
+
+SET SERVEROUTPUT ON;
+
+DECLARE
+    i NUMBER := 9;
+    j NUMBER;
+BEGIN
+    LOOP
+        EXIT WHEN i < 1;
+
+        j := 1;
+        LOOP
+            EXIT WHEN j > i;
+            DBMS_OUTPUT.PUT(i || ' ');
+            j := j + 1;
+        END LOOP;
+
+        DBMS_OUTPUT.NEW_LINE;
+        i := i - 1;
+    END LOOP;
+END;
+/
+
+SET SERVEROUTPUT ON;
+
+BEGIN
+    FOR rec IN (SELECT * FROM purchase) LOOP
+
+        IF rec.pur_date < TO_DATE('01-JAN-2000','DD-MON-YYYY') THEN
+            UPDATE purchase
+            SET qty = qty + 150
+            WHERE CURRENT OF rec;
+
+        ELSIF rec.pur_date < TO_DATE('01-JAN-2001','DD-MON-YYYY') THEN
+            UPDATE purchase
+            SET qty = qty + 100
+            WHERE CURRENT OF rec;
+
+        ELSIF rec.pur_date < TO_DATE('01-JAN-2002','DD-MON-YYYY') THEN
+            UPDATE purchase
+            SET qty = qty + 50
+            WHERE purchase_id = rec.purchase_id;
+
+        END IF;
+
+    END LOOP;
+
+    COMMIT;
+END;
+/
+
+SET SERVEROUTPUT ON;
+
+DECLARE
+    CURSOR pur_cur IS
+        SELECT purchase_id, pur_date, qty
+        FROM purchase
+        FOR UPDATE;
+
+    rec pur_cur%ROWTYPE;
+
+BEGIN
+    OPEN pur_cur;
+
+    LOOP
+        FETCH pur_cur INTO rec;
+        EXIT WHEN pur_cur%NOTFOUND;
+
+        IF rec.pur_date < TO_DATE('01-JAN-2000','DD-MON-YYYY') THEN
+            UPDATE purchase
+            SET qty = qty + 150
+            WHERE CURRENT OF pur_cur;
+
+        ELSIF rec.pur_date < TO_DATE('01-JAN-2001','DD-MON-YYYY') THEN
+            UPDATE purchase
+            SET qty = qty + 100
+            WHERE CURRENT OF pur_cur;
+
+        ELSIF rec.pur_date < TO_DATE('01-JAN-2002','DD-MON-YYYY') THEN
+            UPDATE purchase
+            SET qty = qty + 50
+            WHERE CURRENT OF pur_cur;
+
+        END IF;
+
+    END LOOP;
+
+    CLOSE pur_cur;
+    COMMIT;
+END;
+/
+

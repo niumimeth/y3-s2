@@ -1,0 +1,119 @@
+-- For Question 01
+CREATE TABLE courses (
+    course_name VARCHAR2(100),
+    course_number NUMBER
+);
+
+CREATE TABLE student_courses (
+    course_name VARCHAR2(100),
+    course_number NUMBER
+);
+
+-- For Question 02
+CREATE TABLE CUSTOMERS (
+    ID NUMBER PRIMARY KEY,
+    Name VARCHAR2(50),
+    Age NUMBER,
+    Address VARCHAR2(100),
+    Salary NUMBER
+);
+
+-- For Question 03
+CREATE TABLE employees (
+    emp_id NUMBER PRIMARY KEY,
+    Name VARCHAR2(50),
+    Email VARCHAR2(50),
+    hire_date DATE,
+    PhoneNo VARCHAR2(20),
+    Jobid VARCHAR2(20),
+    Salary NUMBER,
+    Commission NUMBER,
+    managerid NUMBER,
+    deptid NUMBER
+);
+
+01. Procedure: UpdateCourse
+
+CREATE OR REPLACE PROCEDURE UpdateCourse (name_in IN VARCHAR2) 
+IS
+    v_course_number NUMBER;
+BEGIN
+    BEGIN
+        SELECT course_number INTO v_course_number 
+        FROM courses 
+        WHERE course_name = name_in;
+    EXCEPTION
+        WHEN NO_DATA_FOUND THEN
+            v_course_number := 10000; -- Default value [cite: 18]
+    END;
+
+    INSERT INTO student_courses (course_name, course_number)
+    VALUES (name_in, v_course_number);
+END UpdateCourse;
+/
+
+DROP PROCEDURE UpdateCourse;    
+
+02. Trigger: Salary Difference
+
+CREATE OR REPLACE TRIGGER TRG_CUSTOMER_SALARY_DIFF
+BEFORE INSERT OR UPDATE OR DELETE ON CUSTOMERS
+FOR EACH ROW
+DECLARE
+    sal_diff NUMBER;
+BEGIN
+    IF UPDATING THEN
+        sal_diff := :NEW.Salary - :OLD.Salary;
+        DBMS_OUTPUT.PUT_LINE('Salary Difference: ' || sal_diff);
+    ELSIF INSERTING THEN
+        DBMS_OUTPUT.PUT_LINE('New Salary: ' || :NEW.Salary);
+    ELSIF DELETING THEN
+        DBMS_OUTPUT.PUT_LINE('Deleted Salary: ' || :OLD.Salary);
+    END IF;
+END;
+/
+
+Phase 03 
+a) 
+DECLARE
+    CURSOR emp_cur IS SELECT Name, hire_date FROM employees;
+    v_years NUMBER;
+BEGIN
+    FOR r IN emp_cur LOOP
+        v_years := FLOOR(MONTHS_BETWEEN(SYSDATE, r.hire_date)/12);
+        DBMS_OUTPUT.PUT_LINE('Employee: ' || r.Name || ' Experience: ' || v_years || ' years');
+    END LOOP;
+END;
+/
+
+b)
+BEGIN
+    FOR r IN (SELECT emp_id, Name, Jobid, hire_date FROM employees) LOOP
+        DBMS_OUTPUT.PUT_LINE('ID: ' || r.emp_id || ' Name: ' || r.Name || ' Job: ' || r.Jobid);
+    END LOOP;
+END;
+/
+
+c)
+DECLARE
+    CURSOR c_dept50 IS 
+        SELECT Salary FROM employees WHERE deptid = 50 
+        FOR UPDATE;
+BEGIN
+    FOR r IN c_dept50 LOOP
+        UPDATE employees SET Salary = Salary * 1.1 
+        WHERE CURRENT OF c_dept50;
+    END LOOP;
+END;
+/
+
+d)
+DECLARE
+    CURSOR c_low_sal (p_limit NUMBER) IS 
+        SELECT Name, Salary FROM employees WHERE Salary < p_limit;
+BEGIN
+    FOR r IN c_low_sal(5000) LOOP
+        DBMS_OUTPUT.PUT_LINE(r.Name || ' earns ' || r.Salary);
+    END LOOP;
+END;
+/
