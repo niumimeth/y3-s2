@@ -1,0 +1,4 @@
+CurrencyKey,Currency_Pair,Base_Currency,Quote_Currency,Region
+1,EUR/USD,EUR,USD,Europe/US
+2,GBP/USD,GBP,USD,UK/US
+3,USD/JPY,USD,JPY,US/Japan
