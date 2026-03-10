@@ -1,0 +1,50 @@
+library(fpp)
+usmelec
+
+#01
+#In this plot can be seen seasonal component.As well as there is not a
+#contant variance.There can be seen upword trend
+plot(usmelec)
+
+#02
+logdata <- log(usmelec)
+plot(logdata) 
+#Log transformation is used to stabalize the variance
+
+Acf(logdata, lag.max = 100)
+
+#03
+sesonalusmelec <- diff(logdata,12)
+plot(sesonalusmelec)
+
+Acf(sesonalusmelec, lag.max = 100)
+
+#04
+plot(sesonalusmelec)
+kpss.test(sesonalusmelec)
+#p-value = 0.04728 
+#Since p < 0.05, We can reject H0 at 5% significance level.
+#Hece we have enouh evidance to conclude that 
+#Seasonally differenced log series is not stationary 
+
+#05
+lag1usmelec <- diff(sesonalusmelec,1)
+
+plot(lag1usmelec)
+kpss.test(lag1usmelec)
+#p-value = 0.1
+#Since p > 0.05, We can not reject H0 at 5% significance level.
+#Hece we have enouh evidance to conclude that 
+#Seasonally differenced log series is stationary 
+
+#06
+Acf(lag1usmelec, lag.max = 100)
+Pacf(lag1usmelec, lag.max = 100)
+
+#07
+fit1 <- Arima(usmelec,order=c(2, 1,0),seasonal=c(0, 1, 1))
+fit2 <- Arima(usmelec,order=c(0, 1,3),seasonal=c(0, 1, 1))
+fit3 <- Arima(usmelec,order=c(0, 1,3),seasonal=c(1, 1, 0))
+summary(fit1) #AIC=3084.67 BIC=3101.03
+summary(fit2) #AIC=3049.38 BIC=3069.82
+summary(fit3) #AIC=3131.28 BIC=3151.72

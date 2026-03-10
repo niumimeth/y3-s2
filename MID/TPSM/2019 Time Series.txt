@@ -1,0 +1,48 @@
+library(fpp)
+install.packages("astsa")
+library(astsa)
+birth
+
+#01
+#In this plot can be seen seasonal component.As well as there is a
+#contant variance.There can be seen cyclical component
+plot(birth)
+
+#02
+trainingSet = window(ts(birth),1,300)
+testingSet = window(ts(birth),301,373)
+
+#03
+Acf(trainingSet, lag.max = 80)
+Pacf(trainingSet, lag.max = 80)
+
+#04
+sesonaltraingSet <- diff(trainingSet,12)
+Acf(sesonaltraingSet, lag.max = 80)
+
+#05
+lag1traingSet <- diff(sesonaltraingSet,1)
+Acf(lag1traingSet, lag.max = 80)
+
+#06
+plot(lag1traingSet)
+kpss.test(lag1traingSet)
+#p-value = 0.1 => p > 0.05 Because null hypothesis is not violating.Then H0 is not rejected.
+#So lag1traingSet is stationary
+
+#07
+Pacf(lag1traingSet, lag.max = 80)
+
+#08
+fit1 <- Arima(trainingSet, order = c(0,1,1),seasonal = c(0,1,0))
+fit2 <- Arima(trainingSet, order = c(0,1,2),seasonal = c(0,1,1))
+fit3 <- Arima(trainingSet, order = c(0,1,2),seasonal = c(1,1,0))
+
+summary(fit1)
+summary(fit2)
+summary(fit3)
+
+#P Q   AIC         BIC
+#0 0   2532.55     2539.95
+#0 1   2530.11     2541.21
+#1 0   2530.11     2541.21
